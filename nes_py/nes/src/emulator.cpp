@@ -12,6 +12,11 @@
 namespace NES {
 
 Emulator::Emulator(std::string rom_path) {
+    // create the shared cheat table and install it on both buses so that
+    // backup/restore preserves cheats across state rollbacks
+    cheats = std::make_shared<CheatTable>();
+    bus.set_cheat_table(cheats);
+    backup_bus.set_cheat_table(cheats);
     // set the read callbacks
     bus.set_read_callback(PPUSTATUS, [&](void) { return ppu.get_status();          });
     bus.set_read_callback(PPUDATA,   [&](void) { return ppu.get_data(picture_bus); });

@@ -81,6 +81,39 @@ extern "C" {
     EXP void Close(NES::Emulator* emu) {
         delete emu;
     }
+
+    /// Add a Game Genie cheat. `compare` is -1 to disable compare matching
+    /// (6-letter code semantics), or 0..255 for 8-letter semantics. Returns
+    /// the index of the added cheat (currently informational only).
+    EXP int AddCheat(NES::Emulator* emu, unsigned int addr,
+                     unsigned char value, int compare) {
+        return emu->add_cheat(
+            static_cast<NES::NES_Address>(addr & 0xFFFF),
+            static_cast<NES::NES_Byte>(value),
+            static_cast<int16_t>(compare)
+        );
+    }
+
+    /// Remove the first cheat matching (addr, value, compare). Returns 1 if
+    /// a cheat was removed, 0 otherwise.
+    EXP int RemoveCheat(NES::Emulator* emu, unsigned int addr,
+                        unsigned char value, int compare) {
+        return emu->remove_cheat(
+            static_cast<NES::NES_Address>(addr & 0xFFFF),
+            static_cast<NES::NES_Byte>(value),
+            static_cast<int16_t>(compare)
+        );
+    }
+
+    /// Remove all active cheats.
+    EXP void ClearCheats(NES::Emulator* emu) {
+        emu->clear_cheats();
+    }
+
+    /// Return the number of active cheats.
+    EXP int CheatCount(NES::Emulator* emu) {
+        return emu->cheat_count();
+    }
 }
 
 // un-define the macro

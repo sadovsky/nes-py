@@ -8,10 +8,12 @@
 #ifndef MAIN_BUS_HPP
 #define MAIN_BUS_HPP
 
+#include <memory>
 #include <vector>
 #include <unordered_map>
 #include "common.hpp"
 #include "mapper.hpp"
+#include "cheat.hpp"
 
 namespace NES {
 
@@ -59,10 +61,22 @@ class MainBus {
     IORegisterToWriteCallbackMap write_callbacks;
     /// a map of IO registers to callback methods for reads
     IORegisterToReadCallbackMap read_callbacks;
+    /// Shared cheat table. shared_ptr so that backup/restore preserves
+    /// cheats across state rollbacks.
+    std::shared_ptr<CheatTable> cheats;
 
  public:
     /// Initialize a new main bus.
-    MainBus() : ram(0x800, 0), mapper(nullptr) { }
+    MainBus() : ram(0x800, 0), mapper(nullptr),
+                cheats(std::make_shared<CheatTable>()) { }
+
+    /// Install a shared cheat table (used by Emulator so all buses share one).
+    inline void set_cheat_table(std::shared_ptr<CheatTable> table) {
+        cheats = std::move(table);
+    }
+
+    /// Access the cheat table (for Emulator-level control).
+    inline CheatTable* get_cheat_table() { return cheats.get(); }
 
     /// Return a 8-bit pointer to the RAM buffer's first address.
     ///

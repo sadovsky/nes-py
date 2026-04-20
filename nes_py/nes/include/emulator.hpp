@@ -9,8 +9,10 @@
 #define EMULATOR_HPP
 
 #include <string>
+#include <memory>
 #include "common.hpp"
 #include "cartridge.hpp"
+#include "cheat.hpp"
 #include "controller.hpp"
 #include "cpu.hpp"
 #include "ppu.hpp"
@@ -46,6 +48,9 @@ class Emulator {
     CPU backup_cpu;
     /// the emulators' PPU
     PPU backup_ppu;
+
+    /// Shared cheat table (single instance across live + backup buses).
+    std::shared_ptr<CheatTable> cheats;
 
  public:
     /// The width of the NES screen in pixels
@@ -86,12 +91,36 @@ class Emulator {
     /// Perform a step on the emulator, i.e., a single frame.
     void step();
 
+    /// Add a Game Genie cheat. compare = -1 means "no compare" (6-letter).
+    /// Returns the index of the added cheat.
+    inline int add_cheat(NES_Address addr, NES_Byte value, int16_t compare) {
+        return cheats->add(addr, value, compare);
+    }
+
+    /// Remove the first matching cheat. Returns 1 if removed, 0 otherwise.
+    inline int remove_cheat(NES_Address addr, NES_Byte value, int16_t compare) {
+        return cheats->remove(addr, value, compare) ? 1 : 0;
+    }
+
+    /// Clear all cheats.
+    inline void clear_cheats() { cheats->clear(); }
+
+    /// Number of active cheats.
+    inline int cheat_count() const {
+        return static_cast<int>(cheats->entries.size());
+    }
+
     /// Create a backup state on the emulator.
     inline void backup() {
         backup_bus = bus;
         backup_picture_bus = picture_bus;
         backup_cpu = cpu;
         backup_ppu = ppu;
+        // bus's shared_ptr was copied verbatim; both buses still point at
+        // the same CheatTable instance we own via `cheats`. Reassert to be
+        // defensive against future copy-assignment changes.
+        bus.set_cheat_table(cheats);
+        backup_bus.set_cheat_table(cheats);
     }
 
     /// Restore the backup state on the emulator.
@@ -100,6 +129,8 @@ class Emulator {
         picture_bus = backup_picture_bus;
         cpu = backup_cpu;
         ppu = backup_ppu;
+        bus.set_cheat_table(cheats);
+        backup_bus.set_cheat_table(cheats);
     }
 };
 

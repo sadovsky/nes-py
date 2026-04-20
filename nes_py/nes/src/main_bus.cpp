@@ -36,7 +36,13 @@ NES_Byte MainBus::read(NES_Address address) {
         if (mapper->hasExtendedRAM())
             return extended_ram[address - 0x6000];
     } else {
-        return mapper->readPRG(address);
+        NES_Byte original = mapper->readPRG(address);
+        if (!cheats->empty()) {
+            NES_Byte patched;
+            if (cheats->lookup(address, original, patched))
+                return patched;
+        }
+        return original;
     }
     return 0;
 }

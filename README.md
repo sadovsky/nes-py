@@ -156,6 +156,38 @@ both the `threading` and `multiprocessing` packages are supported by
     but `nes-py` must be imported within the process that executes the render
     call
 
+# Game Genie Cheats
+
+This fork adds CPU-read interception for Game Genie cheats. Four C symbols
+are exported from `lib_nes_env.so`:
+
+```
+int  AddCheat(Emulator*, unsigned int addr, unsigned char value, int compare)
+int  RemoveCheat(Emulator*, unsigned int addr, unsigned char value, int compare)
+void ClearCheats(Emulator*)
+int  CheatCount(Emulator*)
+```
+
+`compare` is `-1` for 6-letter Game Genie codes (unconditional replace) or
+`0..255` for 8-letter codes (replace only when the original ROM byte matches
+`compare`). `addr` should be the full CPU address in `$8000..$FFFF`.
+
+Cheats are consulted on every CPU read from `$8000..$FFFF`. A shared
+`CheatTable` is owned by the `Emulator` and referenced by both the live and
+backup buses, so cheats survive `backup()`/`restore()` cycles. When no cheats
+are active, the hot path adds a single branch per read with no heap or map
+access.
+
+To build and install this fork from source:
+
+```shell
+cd nes_py/nes && scons     # produces lib_nes_env.so
+cd ../.. && pip install -e .
+```
+
+See [nes-py-cheats.README.md](nes-py-cheats.README.md) for the full patch
+description and list of files touched.
+
 # Development
 
 To design a custom environment using `nes-py`, introduce new features, or fix
